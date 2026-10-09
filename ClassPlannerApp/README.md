@@ -34,3 +34,7 @@ The file is `app/build/outputs/apk/debug/app-debug.apk`.
 The widget reads `app/src/main/java/com/classplanner/widget/Schedule.java`.
 The app reads `app/src/main/assets/index.html` (search for `WEEK` and `COURSES`).
 Change both so they match.
+
+
+## Online mode (optional)
+See ONLINE_SETUP.md. Class reps can post cancellations, moves, room changes and announcements; members get them in the app, on the widget and as notifications. Without setup the app stays fully offline.

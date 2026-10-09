@@ -1,0 +1,44 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // The secret rep key lives here. Nobody can read or change it from the app.
+    match /config/{doc} {
+      allow read, write: if false;
+    }
+
+    function isRep() {
+      return request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'rep';
+    }
+    function keyOk() {
+      return request.resource.data.repKey == get(/databases/$(database)/documents/config/rep).data.key;
+    }
+
+    // Each person has one profile. Only the right rep key can make it a "rep".
+    match /users/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['name', 'role', 'repKey'])
+        && ((request.resource.data.role == 'member' && !('repKey' in request.resource.data))
+            || (request.resource.data.role == 'rep' && keyOk()));
+      allow update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['name', 'role', 'repKey'])
+        && request.resource.data.name == resource.data.name
+        && ((request.resource.data.role == 'member' && !('repKey' in request.resource.data))
+            || (request.resource.data.role == 'rep' && keyOk()));
+      allow delete: if false;
+    }
+
+    // Class updates: everyone can read, only reps can post or remove.
+    match /updates/{id} {
+      allow read: if true;
+      allow create: if isRep()
+        && request.resource.data.type in ['cancel', 'move', 'room', 'announce']
+        && request.resource.data.by is string
+        && request.resource.data.createdAt is int;
+      allow delete: if isRep();
+      allow update: if false;
+    }
+  }
+}
